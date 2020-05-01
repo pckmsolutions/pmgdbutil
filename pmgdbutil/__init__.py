@@ -1,5 +1,5 @@
 from contextlib import contextmanager
-from mysql.connector import pooling
+from mysql.connector import pooling, connect
 from mysql.connector.connection import ServerCmd
 import types
 from itertools import count
@@ -261,3 +261,45 @@ def opt_assign(data, update_name, exist_name):
                 else f'{update_name}.{key} = %({key})s'
     return val_assign_for_optional
 
+@contextmanager
+def connection(**kwargs):
+    cnx = connect(**kwargs)
+    cnx.autocommit = False
+    try:
+        yield cnx
+    finally:
+        cnx.commit()
+        cnx.close()
+
+@contextmanager
+def connected_cursor(**kwargs):
+    with connection(**kwargs) as cnx:
+        cur = cnx.cursor()
+        try:
+            yield cur
+        finally:
+            cur.close()
+
+class ConnectedCursor(object):
+    def __init__(self, **kwargs):
+        self.cnx_args = kwargs
+        self.cnx = None
+        self.cur = None
+
+    def close(self):
+        if self.cur:
+            self.cur.close()
+            self.cur = None
+        if self.cnx:
+            self.cnx.commit()
+            self.cnx.close()
+            self.cnx = None
+
+    def __enter__(self):
+        self.cnx = connect(**self.cnx_args)
+        self.cnx.autocommit = False
+        self.cur = self.cnx.cursor()
+        return self
+
+    def __exit__(self ,type, value, traceback):
+        self.close()
