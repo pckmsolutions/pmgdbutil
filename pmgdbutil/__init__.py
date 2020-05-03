@@ -4,7 +4,10 @@ from mysql.connector.connection import ServerCmd
 import types
 from itertools import count
 from collections import defaultdict
+from functools import wraps
+import logging
 
+logger = logging.getLogger(__name__)
 
 try:
     import cPickle as pickle
@@ -17,6 +20,14 @@ def fetchall_dict(cur):
 def fetchone_dict(cur, else_return = None):
     row = cur.fetchone()
     return {col_desc[0]: val for (col_desc, val) in zip(cur.description, row)} if row else (else_return() if else_return else None)
+
+def fetchone_obj(cur):
+    class OneRow(object):
+        def __init__(self, row):
+            for (col_desc, val) in zip(cur.description, row):
+                setattr(self, col_desc[0], val)
+    row = cur.fetchone()
+    return OneRow(row) if row else None
 
 def limit_offset(req_dict):
     def page_str(key):
@@ -286,12 +297,15 @@ class ConnectedCursor(object):
         self.cnx = None
         self.cur = None
 
-    def close(self):
+    def close(self, commit=True):
         if self.cur:
             self.cur.close()
             self.cur = None
         if self.cnx:
-            self.cnx.commit()
+            if commit:
+                self.cnx.commit()
+            else:
+                self.cnx.rollback()
             self.cnx.close()
             self.cnx = None
 
@@ -302,4 +316,28 @@ class ConnectedCursor(object):
         return self
 
     def __exit__(self ,type, value, traceback):
-        self.close()
+        self.close(type == None)
+
+def with_cursor(getcon, **kwargs):
+    def wrapped(view_func):
+        @wraps(view_func)
+        def decorated(*args, **kwargs):
+            with getcon() as connection:
+                cur = connection.cursor(buffered=True)
+                try:
+                    ret = view_func(cur, *args, **kwargs)
+                    connection.commit()
+                    return ret
+                except:
+                    logger.error('Error in view function call. Rolling back database.')
+                    connection.rollback()
+                    raise
+                finally:
+                    if cur:
+                        cur.close()
+
+        return decorated
+    return wrapped
+
+
+
