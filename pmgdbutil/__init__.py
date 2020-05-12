@@ -14,12 +14,15 @@ try:
 except ImportError:
     import pickle
 
+def row_as_dict(cur, row):
+    return {col_desc[0]: val for (col_desc, val) in zip(cur.description, row)} 
+
 def fetchall_dict(cur):
-    return [{col_desc[0]: val for (col_desc, val) in zip(cur.description, row)} for row in cur.fetchall()]
+    return (row_as_dict(cur, row) for row in cur.fetchall())
 
 def fetchone_dict(cur, else_return = None):
     row = cur.fetchone()
-    return {col_desc[0]: val for (col_desc, val) in zip(cur.description, row)} if row else (else_return() if else_return else None)
+    return row_as_dict(cur, row) if row else (else_return() if else_return else None)
 
 def fetchone_obj(cur):
     class OneRow(object):
@@ -79,9 +82,9 @@ def as_int(given):
     except (ValueError, TypeError):
         return None
 
-def query_args(source_dice, *args, **kwargs):
+def query_args(source_dict, *args, **kwargs):
     check_list = [*args, *['limit', 'offset', 'lastdate', 'firstdate', 'search']] if kwargs.get('search_args') else args
-    return {k:v for (k, v) in source_dice.items() if k in check_list}
+    return {k:v for (k, v) in source_dict.items() if k in check_list}
 
 def response_collection(cur, collection_name, **mappers):
     c_key, v_key = f'{collection_name}_columns', f'{collection_name}'
@@ -292,8 +295,9 @@ def connected_cursor(**kwargs):
             cur.close()
 
 class ConnectedCursor(object):
-    def __init__(self, **kwargs):
-        self.cnx_args = kwargs
+    def __init__(self, connection_args, cursor_args=None):
+        self.cnx_args = connection_args
+        self.cur_args = cursor_args or {}
         self.cnx = None
         self.cur = None
 
@@ -312,7 +316,7 @@ class ConnectedCursor(object):
     def __enter__(self):
         self.cnx = connect(**self.cnx_args)
         self.cnx.autocommit = False
-        self.cur = self.cnx.cursor()
+        self.cur = self.cnx.cursor(**self.cur_args)
         return self
 
     def __exit__(self ,type, value, traceback):
