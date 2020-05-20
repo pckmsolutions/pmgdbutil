@@ -305,6 +305,7 @@ class Connection(object):
                 self.cnx.commit()
             else:
                 self.cnx.rollback()
+            self.cnx.close()
             self.cnx = None
 
     def __enter__(self):
