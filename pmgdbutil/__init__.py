@@ -294,9 +294,32 @@ def connected_cursor(**kwargs):
         finally:
             cur.close()
 
-class ConnectedCursor(object):
-    def __init__(self, connection_args, cursor_args=None):
+class Connection(object):
+    def __init__(self, connection_args=None):
         self.cnx_args = connection_args
+        self.cnx = None
+
+    def close(self, commit=True):
+        if self.cnx:
+            if commit:
+                self.cnx.commit()
+            else:
+                self.cnx.rollback()
+            self.cnx = None
+
+    def __enter__(self):
+        self.cnx = connect(**self.cnx_args)
+        self.cnx.autocommit = False
+        return self
+
+    def __exit__(self ,type, value, traceback):
+        self.close(type == None)
+
+class Cursor(object):
+    def __init__(self, connection_args=None, connection=None, cursor_args=None):
+        assert connection_args or connection
+        self.cnx_args = connection_args
+        self.connection = connection
         self.cur_args = cursor_args or {}
         self.cnx = None
         self.cur = None
@@ -310,17 +333,22 @@ class ConnectedCursor(object):
                 self.cnx.commit()
             else:
                 self.cnx.rollback()
-            self.cnx.close()
+            if not self.connection:
+                self.cnx.close()
             self.cnx = None
 
     def __enter__(self):
-        self.cnx = connect(**self.cnx_args)
+        self.cnx = self.connection if self.connection else connect(**self.cnx_args)
         self.cnx.autocommit = False
         self.cur = self.cnx.cursor(**self.cur_args)
         return self
 
     def __exit__(self ,type, value, traceback):
         self.close(type == None)
+
+class ConnectedCursor(Cursor):
+    def __init__(self, connection_args=None, cursor_args=None):
+        super(ConnectedCursor, self).__init__(self, connection_args=connection_args, cursor_args=cursor_args)
 
 def with_cursor(getcon, **kwargs):
     def wrapped(view_func):
