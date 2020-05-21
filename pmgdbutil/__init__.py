@@ -347,6 +347,18 @@ class Cursor(object):
     def __exit__(self ,type, value, traceback):
         self.close(type == None)
 
+    def last_id(self):
+        global last_id
+        return last_id(self.cur)
+
+    def __getattribute__(self, name):
+        try:
+            return object.__getattribute__(self, name)
+        except AttributeError:
+            pass
+        return object.__getattribute__(self.cur, name)
+
+
 class ConnectedCursor(Cursor):
     def __init__(self, connection_args=None, cursor_args=None):
         super(ConnectedCursor, self).__init__(self, connection_args=connection_args, cursor_args=cursor_args)
