@@ -86,9 +86,19 @@ def query_args(source_dict, *args, **kwargs):
     check_list = [*args, *['limit', 'offset', 'lastdate', 'firstdate', 'search']] if kwargs.get('search_args') else args
     return {k:v for (k, v) in source_dict.items() if k in check_list}
 
-def response_collection(cur, collection_name, **mappers):
-    c_key, v_key = f'{collection_name}_columns', f'{collection_name}'
+def response_collection(cur, collection_name, mappers=None, limit=None, offset=None):
+    def nam(k):
+        return f'{collection_name}{k}'
+    c_key, v_key = nam('_columns'), nam('')
     val_dict = {c_key: [d[0] for d in cur.description], v_key: cur.fetchall()}
+
+    val_dict[nam(f'_count')] = len(val_dict[v_key])
+
+    for arg in ['limit', 'offset']:
+        arg_val = locals().get(arg)
+        if arg_val != None:
+            val_dict[nam(f'_{arg}')] = arg_val
+
     if not mappers:
         return val_dict
 

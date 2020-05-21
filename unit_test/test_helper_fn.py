@@ -27,21 +27,36 @@ class HelperFnTestCase(TestCase):
         val_dict = response_collection(cur, 'mystuf')
         self.assertEqual(val_dict,
                 {'mystuf_columns': ['col1', 'col2', 'col3'],
-                    'mystuf':[('val11', 'val12', 'val13'), ('val21', 'val22', 'val23')]})
+                    'mystuf':[('val11', 'val12', 'val13'), ('val21', 'val22', 'val23')],
+                    'mystuf_count': 2})
 
-    def test_response_collection(self):
+    def test_response_collection_with_mapper(self):
         cur = HelperFnTestCase.Cur([('col1',), ('col2',), ('col3',)], [('val11', 'val12', 'val13'), ('val21', 'val22', 'val23')])
 
-        val_dict = response_collection(cur, 'mystuf', col2=('colx', lambda v: v * 2))
+        val_dict = response_collection(cur, 'mystuf', mappers=dict(col2=('colx', lambda v: v * 2)))
         self.assertEqual(val_dict,
                 {'mystuf_columns': ['col1', 'colx', 'col3'],
-                    'mystuf':[('val11', 'val12val12', 'val13'), ('val21', 'val22val22', 'val23')]})
+                    'mystuf':[('val11', 'val12val12', 'val13'), ('val21', 'val22val22', 'val23')],
+                    'mystuf_count': 2})
+
+    def test_response_collection_limit_offset(self):
+        cur = HelperFnTestCase.Cur([('col1',), ('col2',), ('col3',)], [('val11', 'val12', 'val13'), ('val21', 'val22', 'val23')])
+
+        val_dict = response_collection(cur, 'mystuf',limit=2, offset=12)
+        self.assertEqual(val_dict,
+                {'mystuf_columns': ['col1', 'col2', 'col3'],
+                    'mystuf':[('val11', 'val12', 'val13'), ('val21', 'val22', 'val23')],
+                    'mystuf_count': 2,
+                    'mystuf_limit': 2,
+                    'mystuf_offset': 12})
 
     def test_response_collection_with_numbers_coz_this_is_awesome(self):
         cur = HelperFnTestCase.Cur([('col1',), ('col2',), ('col3',)], [(11, 12, 13), (21, 22, 23)])
 
-        val_dict = response_collection(cur, 'mystuf', col1=('colA', lambda v: v + 5), col2=('colB', lambda v: v * 2), col3=('colC', lambda v: v - 11))
+        val_dict = response_collection(cur, 'mystuf',
+                mappers=dict(col1=('colA', lambda v: v + 5), col2=('colB', lambda v: v * 2), col3=('colC', lambda v: v - 11)))
         self.assertEqual(val_dict,
                 {'mystuf_columns': ['colA', 'colB', 'colC'],
-                    'mystuf':[(16, 24, 2), (26, 44, 12)]})
+                    'mystuf':[(16, 24, 2), (26, 44, 12)],
+                    'mystuf_count': 2})
 
