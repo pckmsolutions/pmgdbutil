@@ -371,7 +371,7 @@ class Cursor(object):
 
 class ConnectedCursor(Cursor):
     def __init__(self, connection_args=None, cursor_args=None):
-        super(ConnectedCursor, self).__init__(self, connection_args=connection_args, cursor_args=cursor_args)
+        super(ConnectedCursor, self).__init__(connection_args=connection_args, cursor_args=cursor_args)
 
 def with_cursor(getcon, **kwargs):
     def wrapped(view_func):
