@@ -47,10 +47,10 @@ def search_match(req_dict, *fields):
     return ''
 
 def lastdate_match(req_dict, field):
-    return f"{field} <= %(lastdate)s" if req_dict.get('lastdate') else ''
+    return f"DATE({field}) <= %(lastdate)s" if req_dict.get('lastdate') else ''
 
 def firstdate_match(req_dict, field):
-    return f"{field} >= %(firstdate)s" if req_dict.get('firstdate') else ''
+    return f"DATE({field}) >= %(firstdate)s" if req_dict.get('firstdate') else ''
 
 def build_bop(bop, *vargs, **kwargs):
     ret = f' {bop} '.join([m for m in (m.strip() for m in vargs if m) if m]) if vargs else ''
