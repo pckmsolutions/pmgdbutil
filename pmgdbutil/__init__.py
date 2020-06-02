@@ -41,9 +41,13 @@ def limit_offset(req_dict):
     return f'{page_str("limit")} {page_str("offset")}'
 
 def search_match(req_dict, *fields):
-    search = req_dict.get('search')
-    if search:
+    if req_dict.get('search'):
         return f'MATCH ({",".join(fields)}) AGAINST (%(search)s IN NATURAL LANGUAGE MODE)'
+    return ''
+
+def like_match(req_dict, *fields):
+    if req_dict.get('like'):
+        return build_or(*[f'{fld} LIKE %(like)s' for fld in fields])
     return ''
 
 def lastdate_match(req_dict, field):
@@ -83,7 +87,9 @@ def as_int(given):
         return None
 
 def query_args(source_dict, *args, **kwargs):
-    check_list = [*args, *['limit', 'offset', 'lastdate', 'firstdate', 'search']] if kwargs.get('search_args') else args
+    check_list = list(args)
+    if kwargs.get('search_args'):
+        check_list += ['limit', 'offset', 'lastdate', 'firstdate', 'search', 'like']
     return {k:v for (k, v) in source_dict.items() if k in check_list}
 
 def response_collection(cur, collection_name, mappers=None, limit=None, offset=None):
