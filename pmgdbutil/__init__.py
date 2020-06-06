@@ -110,8 +110,12 @@ def response_collection(cur, collection_name, mappers=None, limit=None, offset=N
 
     val_mappers = defaultdict(lambda : lambda x:x)
     for col, ind in [(col, ind) for (col, ind) in zip(val_dict[c_key], count()) if col in mappers]:
-        val_dict[c_key][ind] = mappers[col][0]
-        val_mappers[ind] = mappers[col][1]
+        mapper = mappers[col]
+        if any(isinstance(mapper, t) for t in (tuple, list)):
+            val_dict[c_key][ind] = mappers[col][0]
+            val_mappers[ind] = mappers[col][1]
+        else:
+            val_mappers[ind] = mappers[col]
 
     val_dict[v_key] = [tuple([val_mappers[ind](row[ind]) for ind in range(len(val_dict[c_key]))]) for row in val_dict[v_key]]
     return val_dict
