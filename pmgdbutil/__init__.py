@@ -17,11 +17,11 @@ except ImportError:
 def row_as_dict(cur, row):
     return {col_desc[0]: val for (col_desc, val) in zip(cur.description, row)} 
 
-def fetchall_dict(cur):
-    return (row_as_dict(cur, row) for row in cur.fetchall())
+async def fetchall_dict(cur):
+    return (row_as_dict(cur, row) for row in await cur.fetchall())
 
-def fetchone_dict(cur, else_return = None):
-    row = cur.fetchone()
+async def fetchone_dict(cur, else_return = None):
+    row = await cur.fetchone()
     return row_as_dict(cur, row) if row else (else_return() if else_return else None)
 
 def fetchone_obj(cur):
@@ -92,11 +92,11 @@ def query_args(source_dict, *args, **kwargs):
         check_list += ['limit', 'offset', 'lastdate', 'firstdate', 'search', 'like']
     return {k:v for (k, v) in source_dict.items() if k in check_list}
 
-def response_collection(cur, collection_name, mappers=None, limit=None, offset=None):
+async def response_collection(cur, collection_name, mappers=None, limit=None, offset=None):
     def nam(k):
         return f'{collection_name}{k}'
     c_key, v_key = nam('_columns'), nam('')
-    val_dict = {c_key: [d[0] for d in cur.description], v_key: cur.fetchall()}
+    val_dict = {c_key: [d[0] for d in cur.description], v_key: await cur.fetchall()}
 
     val_dict[nam(f'_count')] = len(val_dict[v_key])
 
