@@ -1,6 +1,6 @@
 from contextlib import contextmanager
-from mysql.connector import pooling, connect
-from mysql.connector.connection import ServerCmd
+#from mysql.connector import pooling, connect
+#from mysql.connector.connection import ServerCmd
 import types
 from itertools import count
 from collections import defaultdict
@@ -121,27 +121,27 @@ async def response_collection(cur, collection_name, mappers=None, limit=None, of
     return val_dict
 
 
-class DbConnectionPool(object):
-    def __init__(self, pool_size, **kwargs):
-        self.pool = pooling.MySQLConnectionPool(pool_size=pool_size, **kwargs) 
-
-    @contextmanager
-    def get_connection(self):
-        cnx = self.pool.get_connection()
-        try:
-            def _cmd_reset_connection(self):
-                self._handle_ok(self._send_cmd(ServerCmd.RESET_CONNECTION))
-                self._post_connection()
-
-            cnx._cnx.cmd_reset_connection = types.MethodType(_cmd_reset_connection, cnx)
-            cnx.autocommit = False
-            yield cnx
-        finally:
-            cnx.close()
-
-    def close(self):
-        self.pool._remove_connections()
-        self.pool = None
+#class DbConnectionPool(object):
+#    def __init__(self, pool_size, **kwargs):
+#        self.pool = pooling.MySQLConnectionPool(pool_size=pool_size, **kwargs) 
+#
+#    @contextmanager
+#    def get_connection(self):
+#        cnx = self.pool.get_connection()
+#        try:
+#            def _cmd_reset_connection(self):
+#                self._handle_ok(self._send_cmd(ServerCmd.RESET_CONNECTION))
+#                self._post_connection()
+#
+#            cnx._cnx.cmd_reset_connection = types.MethodType(_cmd_reset_connection, cnx)
+#            cnx.autocommit = False
+#            yield cnx
+#        finally:
+#            cnx.close()
+#
+#    def close(self):
+#        self.pool._remove_connections()
+#        self.pool = None
 
 @contextmanager
 def temp_table(cur, name, defin):
@@ -295,114 +295,114 @@ def opt_assign(data, update_name, exist_name):
                 else f'{update_name}.{key} = %({key})s'
     return val_assign_for_optional
 
-@contextmanager
-def connection(**kwargs):
-    cnx = connect(**kwargs)
-    cnx.autocommit = False
-    try:
-        yield cnx
-    finally:
-        cnx.commit()
-        cnx.close()
+#@contextmanager
+#def connection(**kwargs):
+#    cnx = connect(**kwargs)
+#    cnx.autocommit = False
+#    try:
+#        yield cnx
+#    finally:
+#        cnx.commit()
+#        cnx.close()
+#
+#@contextmanager
+#def connected_cursor(**kwargs):
+#    with connection(**kwargs) as cnx:
+#        cur = cnx.cursor()
+#        try:
+#            yield cur
+#        finally:
+#            cur.close()
 
-@contextmanager
-def connected_cursor(**kwargs):
-    with connection(**kwargs) as cnx:
-        cur = cnx.cursor()
-        try:
-            yield cur
-        finally:
-            cur.close()
+#class Connection(object):
+#    def __init__(self, connection_args=None):
+#        self.cnx_args = connection_args
+#        self.cnx = None
+#
+#    def close(self, commit=True):
+#        if self.cnx:
+#            if commit:
+#                self.cnx.commit()
+#            else:
+#                self.cnx.rollback()
+#            self.cnx.close()
+#            self.cnx = None
+#
+#    def __enter__(self):
+#        self.cnx = connect(**self.cnx_args)
+#        self.cnx.autocommit = False
+#        return self
+#
+#    def __exit__(self ,type, value, traceback):
+#        self.close(type == None)
 
-class Connection(object):
-    def __init__(self, connection_args=None):
-        self.cnx_args = connection_args
-        self.cnx = None
-
-    def close(self, commit=True):
-        if self.cnx:
-            if commit:
-                self.cnx.commit()
-            else:
-                self.cnx.rollback()
-            self.cnx.close()
-            self.cnx = None
-
-    def __enter__(self):
-        self.cnx = connect(**self.cnx_args)
-        self.cnx.autocommit = False
-        return self
-
-    def __exit__(self ,type, value, traceback):
-        self.close(type == None)
-
-class Cursor(object):
-    def __init__(self, connection_args=None, connection=None, cursor_args=None):
-        assert connection_args or connection
-        self.cnx_args = connection_args
-        self.connection = connection
-        self.cur_args = cursor_args or {}
-        self.cnx = None
-        self.cur = None
-
-    def close(self, commit=True):
-        if self.cur:
-            self.cur.close()
-            self.cur = None
-        if self.cnx:
-            if commit:
-                self.cnx.commit()
-            else:
-                self.cnx.rollback()
-            if not self.connection:
-                self.cnx.close()
-            self.cnx = None
-
-    def __enter__(self):
-        self.cnx = self.connection if self.connection else connect(**self.cnx_args)
-        self.cnx.autocommit = False
-        self.cur = self.cnx.cursor(**self.cur_args)
-        return self
-
-    def __exit__(self ,type, value, traceback):
-        self.close(type == None)
-
-    def last_id(self):
-        global last_id
-        return last_id(self.cur)
-
-    def __getattribute__(self, name):
-        try:
-            return object.__getattribute__(self, name)
-        except AttributeError:
-            pass
-        return object.__getattribute__(self.cur, name)
-
-
-class ConnectedCursor(Cursor):
-    def __init__(self, connection_args=None, cursor_args=None):
-        super(ConnectedCursor, self).__init__(connection_args=connection_args, cursor_args=cursor_args)
-
-def with_cursor(getcon, **kwargs):
-    def wrapped(view_func):
-        @wraps(view_func)
-        def decorated(*args, **kwargs):
-            with getcon() as connection:
-                cur = connection.cursor(buffered=True)
-                try:
-                    ret = view_func(cur, *args, **kwargs)
-                    connection.commit()
-                    return ret
-                except:
-                    logger.error('Error in view function call. Rolling back database.')
-                    connection.rollback()
-                    raise
-                finally:
-                    if cur:
-                        cur.close()
-
-        return decorated
-    return wrapped
+#class Cursor(object):
+#    def __init__(self, connection_args=None, connection=None, cursor_args=None):
+#        assert connection_args or connection
+#        self.cnx_args = connection_args
+#        self.connection = connection
+#        self.cur_args = cursor_args or {}
+#        self.cnx = None
+#        self.cur = None
+#
+#    def close(self, commit=True):
+#        if self.cur:
+#            self.cur.close()
+#            self.cur = None
+#        if self.cnx:
+#            if commit:
+#                self.cnx.commit()
+#            else:
+#                self.cnx.rollback()
+#            if not self.connection:
+#                self.cnx.close()
+#            self.cnx = None
+#
+#    def __enter__(self):
+#        self.cnx = self.connection if self.connection else connect(**self.cnx_args)
+#        self.cnx.autocommit = False
+#        self.cur = self.cnx.cursor(**self.cur_args)
+#        return self
+#
+#    def __exit__(self ,type, value, traceback):
+#        self.close(type == None)
+#
+#    def last_id(self):
+#        global last_id
+#        return last_id(self.cur)
+#
+#    def __getattribute__(self, name):
+#        try:
+#            return object.__getattribute__(self, name)
+#        except AttributeError:
+#            pass
+#        return object.__getattribute__(self.cur, name)
+#
+#
+#class ConnectedCursor(Cursor):
+#    def __init__(self, connection_args=None, cursor_args=None):
+#        super(ConnectedCursor, self).__init__(connection_args=connection_args, cursor_args=cursor_args)
+#
+#def with_cursor(getcon, **kwargs):
+#    def wrapped(view_func):
+#        @wraps(view_func)
+#        def decorated(*args, **kwargs):
+#            with getcon() as connection:
+#                cur = connection.cursor(buffered=True)
+#                try:
+#                    ret = view_func(cur, *args, **kwargs)
+#                    connection.commit()
+#                    return ret
+#                except:
+#                    logger.error('Error in view function call. Rolling back database.')
+#                    connection.rollback()
+#                    raise
+#                finally:
+#                    if cur:
+#                        cur.close()
+#
+#        return decorated
+#    return wrapped
 
 
 
