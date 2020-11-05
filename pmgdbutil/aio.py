@@ -22,7 +22,7 @@ async def fetchone_dict(cur, else_return = None):
     row = await cur.fetchone()
     return row_as_dict(cur, row) if row else (else_return() if else_return else None)
 
-async def response_collection(cur, collection_name, mappers=None, limit=None, offset=None):
+async def response_collection(cur, collection_name, *, mappers=None, limit=None, offset=None):
     def nam(k):
         return f'{collection_name}{k}'
     c_key, v_key = nam('_columns'), nam('')
@@ -38,7 +38,11 @@ async def response_collection(cur, collection_name, mappers=None, limit=None, of
     if not mappers:
         return val_dict
 
-    val_mappers = defaultdict(lambda : lambda x:x)
+    async def idf(x):
+        return x
+    
+    val_mappers = defaultdict(lambda : idf)
+
     for col, ind in [(col, ind) for (col, ind) in zip(val_dict[c_key], count()) if col in mappers]:
         mapper = mappers[col]
         if any(isinstance(mapper, t) for t in (tuple, list)):
@@ -47,7 +51,16 @@ async def response_collection(cur, collection_name, mappers=None, limit=None, of
         else:
             val_mappers[ind] = mappers[col]
 
-    val_dict[v_key] = [tuple([val_mappers[ind](row[ind]) for ind in range(len(val_dict[c_key]))]) for row in val_dict[v_key]]
+    mapped = []
+    for row in val_dict[v_key]:
+        cols = []
+        for ind in range(len(val_dict[c_key])):
+            cols.append(await val_mappers[ind](row[ind]))
+
+        mapped.append(tuple(cols))
+
+    val_dict[v_key] = mapped
+
     return val_dict
 
 

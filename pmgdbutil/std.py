@@ -90,7 +90,7 @@ def query_args(source_dict, *args, **kwargs):
         check_list += ['limit', 'offset', 'lastdate', 'firstdate', 'search', 'like']
     return {k:v for (k, v) in source_dict.items() if k in check_list}
 
-def response_collection(cur, collection_name, mappers=None, limit=None, offset=None):
+def response_collection(cur, collection_name, *, mappers=None, limit=None, offset=None):
     def nam(k):
         return f'{collection_name}{k}'
     c_key, v_key = nam('_columns'), nam('')
