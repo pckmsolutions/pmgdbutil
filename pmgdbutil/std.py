@@ -1,7 +1,7 @@
 from contextlib import contextmanager
 import types
 from itertools import count
-from collections import defaultdict
+from collections import defaultdict, namedtuple
 from functools import wraps
 import logging
 
@@ -22,13 +22,10 @@ def fetchone_dict(cur, else_return = None):
     row = cur.fetchone()
     return row_as_dict(cur, row) if row else (else_return() if else_return else None)
 
-def fetchone_obj(cur):
-    class OneRow(object):
-        def __init__(self, row):
-            for (col_desc, val) in zip(cur.description, row):
-                setattr(self, col_desc[0], val)
+def fetchone_tuple(cur):
+    One = namedtuple('One', ' '.join([col[0] for col in cur.description]))
     row = cur.fetchone()
-    return OneRow(row) if row else None
+    return One(*row) if row else None
 
 def limit_offset(req_dict):
     def page_str(key):
