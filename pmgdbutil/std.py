@@ -27,6 +27,11 @@ def fetchone_tuple(cur):
     row = cur.fetchone()
     return One(*row) if row else None
 
+def fetchall_tuple(cur):
+    One = namedtuple('One', ' '.join([col[0] for col in cur.description]))
+    rows = cur.fetchall()
+    return [One(*row) for row in rows] if rows else None
+
 def limit_offset(req_dict):
     def page_str(key):
         val = as_int(req_dict.get(key))
