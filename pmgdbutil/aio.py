@@ -4,6 +4,7 @@ from itertools import count
 from collections import defaultdict
 from functools import wraps
 import logging
+from collections import namedtuple
 
 from .std import row_as_dict, and_build_and
 
@@ -21,6 +22,19 @@ async def fetchall_dict(cur):
 async def fetchone_dict(cur, else_return = None):
     row = await cur.fetchone()
     return row_as_dict(cur, row) if row else (else_return() if else_return else None)
+
+def _tup(cur):
+    return namedtuple('One', ' '.join([col[0] for col in cur.description]))
+
+async def fetchall_tuple(cur):
+    One = _tup(cur)
+    rows = await cur.fetchall()
+    if rows:
+        return (One(*row) for row in rows)
+
+async def fetchone_tuple(cur):
+    row = await cur.fetchone()
+    return _tup(cur)(*row) if row else None
 
 async def response_collection(cur, collection_name, *, mappers=None, limit=None, offset=None):
     def nam(k):
