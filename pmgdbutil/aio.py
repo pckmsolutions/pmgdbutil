@@ -31,6 +31,9 @@ async def fetchall_tuple(cur):
     rows = await cur.fetchall()
     if rows:
         return (One(*row) for row in rows)
+    else:
+        return []
+
 
 async def fetchone_tuple(cur):
     row = await cur.fetchone()
@@ -115,3 +118,6 @@ try:
 except ImportError:
     pass
 
+async def last_id(cur):
+    await cur.execute('SELECT LAST_INSERT_ID()')
+    return (await cur.fetchone())[0]
